@@ -1,21 +1,21 @@
 import streamlit as st
 import extrator 
 
-#Configura pagina 
+# page config
 st.set_page_config(page_title="Hakutaku MVP", page_icon="", layout="wide")
 
-#titulo da pagina
+# Page title
 st.title("Hakutaku: Organizational Intelligence Layer")
 st.markdown("---")
 
 # ==========================================
-# ZONA 1: A Torre de Controle (Barra Lateral)
+# (Side Bar)
 # ==========================================
 with st.sidebar:
     st.header("Data entry")
     st.write("Upload your meeting or text message")
     
-    # O componente de upload
+    # file uploader
     file_up = st.file_uploader("Document (.txt)", type=["txt"])
     
     # O botão principal (ainda não faz nada, só mostra um aviso)
@@ -40,22 +40,22 @@ with st.sidebar:
     st.subheader("System X-ray")
     st.write("")
     
-    # Componente visual para exibir métricas (números em destaque)
+    # metrics 
     col_a, col_b = st.columns(2)
     col_a.metric(label="Active Tasks", value="12", delta="+2 today")
     col_b.metric(label="Critical risks", value="3", delta="-1 solved", delta_color="inverse")
 
 
 # ==========================================
-# ZONA 2: Resumo Executivo (Proposals)
+# Proposals
 # ==========================================
 st.header("Insights & Proposals")
 st.write("Ai Sugestions :")
 
-# Criamos 3 colunas para colocar os alertas lado a lado
+# Alerts 
 col1, col2, col3 = st.columns(3)
 
-with col1:
+with col1:  
     st.error("**imminent risk:** \n\nCliente TechNova mencionou cancelamento. \n\n**Ação sugerida:** Agendar call de contenção com a diretoria.")
 with col2:
     st.success("**New delegation:** \n\nMarina Costa assumiu o Mapeamento Salesforce. \n\n**Status:** Em andamento.")
@@ -65,12 +65,12 @@ with col3:
 st.markdown("---")
 
 # ==========================================
-# ZONA 3: O Cérebro da Empresa (O Grafo)
+# Graph
 # ==========================================
 st.header("Knowledge Graph (Actual State)")
 st.write("Tecnical vision. (Showing pending only).")
 
-# Criamos uma caixa com borda para demarcar onde o gráfico matemático vai entrar
+# Graph container
 caixa_grafo = st.container(border=True)
 with caixa_grafo:
     st.html(
