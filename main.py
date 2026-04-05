@@ -20,7 +20,19 @@ with st.sidebar:
     
     # O botão principal (ainda não faz nada, só mostra um aviso)
     if st.button("Extract knowledgment", type="primary", use_container_width=True):
-        st.toast("processing file... s")
+        if file_up is not None:
+            with st.spinner("Processing your file..."):
+                fileText = file_up.getvalue().decode("utf-8")
+
+                extractData = extrator.processData(fileText)
+
+                st.session_state['data'] = extractData
+
+                print(extractData)
+            
+            st.success("Sucesseful data extract")
+        else:
+            st.warning("Please, upload a .txt file")
         
         
     st.markdown("---")
