@@ -35,5 +35,3 @@ if __name__ == "__main__":
 
     grafo = buildGraph(json_teste)
     print(f" Nós: {grafo.number_of_nodes()} | Arestas: {grafo.number_of_edges()}")
-
-

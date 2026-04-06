@@ -11,7 +11,13 @@ genai.configure(api_key=api_key)
 # Aqui dizemos quem ela é e como deve se comportar.
 instrucao_sistema = """
 You are a Data Engineer specializing in Ontological Knowledge Graphs.
-Your ONLY function is to read meeting transcripts and extract entities (People, Tasks, Risks) and their relationships.
+Your ONLY function is to read meeting transcripts and extract entities and their relationships.
+
+STRICT GRAPH RULES (ONTOLOGY):
+1. **Happy Path:** People execute Tasks (Person -> PERFORMED -> Task -> AFFECTS/RESOLVES -> SystemComponent). A Person NEVER connects directly to a Component.
+2. **Chaos & Risks:** If a problem, complaint, or threat arises, create a "Risk" entity. (Client/Person -> RAISED -> Risk -> THREATENS/AFFECTS -> SystemComponent/Task).
+3. **Blockers & Events:** If meetings are canceled or tasks are blocked, map the causality. (Person -> CANCELED -> Event -> BLOCKS -> Task).
+4. **Actionable Nodes:** Always ensure there is an intermediate node (Task, Risk, or Event) explaining HOW or WHY two entities are connected.
 
 You must return ONLY a valid JSON object strictly following this exact structure:
 {
@@ -25,7 +31,7 @@ You must return ONLY a valid JSON object strictly following this exact structure
     "new_entities": [
       {
         "id": "string (snake_case)",
-        "type": "string",
+        "type": "Person | Task | SystemComponent | Risk | Event | Client",
         "name": "string"
       }
     ],
