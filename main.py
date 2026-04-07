@@ -2,6 +2,7 @@ import streamlit as st
 import extrator 
 import graphEngine
 from streamlit_agraph import agraph, Node, Edge, Config
+import neoj4Client
 
 # page config
 st.set_page_config(page_title="Hakutaku MVP", page_icon="", layout="wide")
@@ -29,6 +30,11 @@ with st.sidebar:
                 fileText = file_up.getvalue().decode("utf-8")
 
                 extractData = extrator.processData(fileText)
+
+                neoj4Client.save_to_neo4j(extractData)
+
+                st.success("Data save em database")
+
 
                 st.session_state['data'] = extractData
 
@@ -185,4 +191,4 @@ if 'graph' in st.session_state:
 
 else:
     # O que mostrar quando a página abre pela primeira vez
-    st.info("👆 Please upload a document and click 'Extract knowledgment' to generate the graph.")
+    st.info("Please upload a document and click 'Extract knowledgment' to generate the graph.")
