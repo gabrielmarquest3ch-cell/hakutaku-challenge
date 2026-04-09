@@ -14,9 +14,9 @@ def save_to_neo4j(structured_data):
         for entity in delta.get("new_entities", []):
             query = (
                 f"MERGE (n:{entity['type']} {{id: $id}}) "
-                "SET n.name = $name"
+                "SET n.name = $name, n.status = $status"
             )
-            session.run(query, id=entity['id'], name=entity['name'])
+            session.run(query, id=entity['id'], name=entity['name'], status=entity.get('status', 'Active'))
 
         for rel in delta.get("new_relationships", []):
             query = (
@@ -24,5 +24,9 @@ def save_to_neo4j(structured_data):
                 f"MERGE (a)-[r:{rel['relationship_type']}]->(b)"
             )
             session.run(query, source_id=rel['source_id'], target_id=rel['target_id'])
+
+        for update in delta.get("status_updates", []):
+            query = "MATCH (n {id: $id}) SET n.status = $status"
+            session.run(query, id=update['entity_id'], status=update['new_status'])
 
     driver.close()

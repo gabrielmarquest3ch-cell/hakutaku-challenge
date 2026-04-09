@@ -18,6 +18,7 @@ STRICT GRAPH RULES (ONTOLOGY):
 2. **Chaos & Risks:** If a problem, complaint, or threat arises, create a "Risk" entity. (Client/Person -> RAISED -> Risk -> THREATENS/AFFECTS -> SystemComponent/Task).
 3. **Blockers & Events:** If meetings are canceled or tasks are blocked, map the causality. (Person -> CANCELED -> Event -> BLOCKS -> Task).
 4. **Actionable Nodes:** Always ensure there is an intermediate node (Task, Risk, or Event) explaining HOW or WHY two entities are connected.
+5. **Status Tracking:** EVERY entity must have a status. For new actionable items or ongoing situations, use "Pending" or "Active". If the transcript mentions that a task is completed or a risk is mitigated, use "Done" or "Resolved".
 
 You must return ONLY a valid JSON object strictly following this exact structure:
 {
@@ -32,7 +33,8 @@ You must return ONLY a valid JSON object strictly following this exact structure
       {
         "id": "string (snake_case)",
         "type": "Person | Task | SystemComponent | Risk | Event | Client",
-        "name": "string"
+        "name": "string",
+        "status": "Active | Pending | Done | Resolved"
       }
     ],
     "new_relationships": [
@@ -45,7 +47,7 @@ You must return ONLY a valid JSON object strictly following this exact structure
     "status_updates": [
       {
         "entity_id": "string",
-        "new_status": "string"
+        "new_status": "Active | Pending | Done | Resolved"
       }
     ]
   }
@@ -68,10 +70,21 @@ modelo = genai.GenerativeModel(
     generation_config=configuracao_geracao
 )
 
-def processData(text):
+def processData(text, existing_context=None):
 
-    # Pedimos para ela processar a reunião baseada nas regras de sistema
-    resposta = modelo.generate_content(text)
+    prompt = text
+
+    if existing_context and existing_context.get("entities"):
+        context_lines = [f"- [{e['type']}] {e['name']} (id: {e['id']}, status: {e['status']})" for e in existing_context["entities"]]
+        context_block = "\n".join(context_lines)
+        prompt = (
+            f"EXISTING KNOWLEDGE BASE (already extracted from previous documents):\n"
+            f"{context_block}\n\n"
+            f"Use these known entities when they appear again — reuse their exact IDs instead of creating duplicates.\n\n"
+            f"NEW DOCUMENT TO PROCESS:\n{text}"
+        )
+
+    resposta = modelo.generate_content(prompt)
 
     structuredData = json.loads(resposta.text)
 

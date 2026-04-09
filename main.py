@@ -29,7 +29,8 @@ with st.sidebar:
 
                 fileText = file_up.getvalue().decode("utf-8")
 
-                extractData = extrator.processData(fileText)
+                existing_context = graphEngine.get_active_context(graphEngine.meu_driver)
+                extractData = extrator.processData(fileText, existing_context)
 
                 neoj4Client.save_to_neo4j(extractData)
 
@@ -37,8 +38,9 @@ with st.sidebar:
 
 
                 st.session_state['data'] = extractData
+                st.session_state['proposals'] = extractData.get('proposals', [])
 
-                graph_networkx = graphEngine.buildGraph(extractData)
+                graph_networkx = graphEngine.load_graph_from_neo4j(graphEngine.meu_driver)
 
                 st.session_state['graph'] = graph_networkx
 
@@ -70,15 +72,26 @@ with st.sidebar:
 st.header("Insights & Proposals")
 st.write("Ai Sugestions :")
 
-# Alerts 
-col1, col2, col3 = st.columns(3)
+proposals = st.session_state.get('proposals', [])
 
-with col1:  
-    st.error("**imminent risk:** \n\nCliente TechNova mencionou cancelamento. \n\n**Ação sugerida:** Agendar call de contenção com a diretoria.")
-with col2:
-    st.success("**New delegation:** \n\nMarina Costa assumiu o Mapeamento Salesforce. \n\n**Status:** Em andamento.")
-with col3:
-    st.warning("**Blocker Indenfied:** \n\nA tarefa 'Integração de API' está bloqueada e sem dono. \n\n**Ação sugerida:** Atribuir a um engenheiro sênior.")
+if not proposals:
+    st.info("No proposals yet. Upload a document to generate insights.")
+else:
+    type_labels = {"risk": "Risk", "task": "Task", "bottleneck": "Bottleneck"}
+
+    for i in range(0, len(proposals), 3):
+        cols = st.columns(3)
+        for j, proposal in enumerate(proposals[i:i+3]):
+            ptype = proposal.get('type', 'info')
+            label = type_labels.get(ptype, ptype.capitalize())
+            message = f"**{label}**\n\n{proposal.get('message', '')}"
+            with cols[j]:
+                if ptype == 'risk':
+                    st.error(message)
+                elif ptype in ('task', 'bottleneck'):
+                    st.warning(message)
+                else:
+                    st.info(message)
 
 st.markdown("---")
 
@@ -87,6 +100,10 @@ st.markdown("---")
 # ==========================================
 st.header("Knowledge Graph (Actual State)")
 st.write("Technical vision. (Showing pending only).")
+
+# Carrega o grafo do Neo4j se ainda não estiver na sessão
+if 'graph' not in st.session_state:
+    st.session_state['graph'] = graphEngine.load_graph_from_neo4j(graphEngine.meu_driver)
 
 # 1. Verifica se o grafo já foi extraído e está na memória
 if 'graph' in st.session_state:
@@ -146,37 +163,37 @@ if 'graph' in st.session_state:
             )
         )
 
-    # 5. Configurando o visual e a FÍSICA para dar espaço
     config_dict = {
-        "width": 800,
-        "height": 500,
+        "width": "100%",
+        "height": 800,
         "directed": True,
+        "hierarchical": True,
         "nodes": {
-            "font": {"color": "#616161", "size": 14, "face": "Arial", "multi": True}, # Arial limpa, cor cinza, tamanho menor
-            "borderWidthSelected": 2
+            "font": {"color": "#e0e0e0", "size": 13, "face": "Arial"},
+            "borderWidthSelected": 2,
+            "widthConstraint": {"maximum": 160}
         },
         "edges": {
             "font": {
-                "color": "#bdbdbd", 
-                "size": 12, 
-                "align": "top", 
-                "strokeWidth": 0, # <--- ESSA É A MÁGICA QUE TIRA A BORDA!
+                "color": "#757575",
+                "size": 10,
+                "align": "top",
+                "strokeWidth": 0,
                 "background": "transparent"
             },
-            "smooth": {"type": "curvedCW", "roundness": 0.2},
-            "arrows": {"to": {"enabled": True, "scaleFactor": 0.5}}
+            "smooth": {"type": "cubicBezier", "forceDirection": "vertical", "roundness": 0.4},
+            "arrows": {"to": {"enabled": True, "scaleFactor": 0.4}}
         },
-        "physics": {
-            "enabled": True,
-            "barnesHut": {
-                "gravitationalConstant": -35000, # Aumentei MUITO a repulsão (era -10000)
-                "centralGravity": 0.003,         # Diminuí o puxão pro centro (era 0.01)
-                "springLength": 300,             # Deixei as setas bem mais longas (era 180)
-                "springConstant": 0.005,         # Deixei as setas mais flexíveis
-                "damping": 0.09,
-                "avoidOverlap": 1
-            },
-            "stabilization": {"enabled": True, "iterations": 1000}
+        "physics": {"enabled": False},
+        "layout": {
+            "hierarchical": {
+                "enabled": True,
+                "direction": "UD",
+                "sortMethod": "directed",
+                "nodeSpacing": 180,
+                "levelSeparation": 160,
+                "treeSpacing": 220
+            }
         }
     }
 
@@ -190,5 +207,94 @@ if 'graph' in st.session_state:
         return_value = agraph(nodes=nodes, edges=edges, config=config)
 
 else:
-    # O que mostrar quando a página abre pela primeira vez
     st.info("Please upload a document and click 'Extract knowledgment' to generate the graph.")
+
+# ==========================================
+# Full History Graph
+# ==========================================
+st.markdown("---")
+st.header("Full Knowledge Graph (Historical)")
+st.write("Complete view including resolved and completed entities.")
+
+full_graph = graphEngine.load_full_graph_from_neo4j(graphEngine.meu_driver)
+
+if full_graph.number_of_nodes() == 0:
+    st.info("No data in the knowledge base yet.")
+else:
+    status_opacity = {"Done": "#555555", "Resolved": "#555555", "Active": None, "Pending": None}
+
+    full_nodes = []
+    full_edges = []
+
+    for node_id, node_data in full_graph.nodes(data=True):
+        tipo_no = node_data.get("type", "Unknown")
+        label_no = node_data.get("name", node_id)
+        status_no = node_data.get("status", "Active")
+
+        if status_no in ("Done", "Resolved"):
+            cor_no = "#444444"
+            formato_no = "dot"
+        elif tipo_no == "Person":
+            cor_no = "#0d47a1"
+            formato_no = "dot"
+        elif tipo_no == "Task":
+            cor_no = "#ffb300"
+            formato_no = "hexagon"
+        elif tipo_no == "Risk":
+            cor_no = "#d32f2f"
+            formato_no = "triangle"
+        elif tipo_no == "Client":
+            cor_no = "#2e7d32"
+            formato_no = "star"
+        elif tipo_no == "Event":
+            cor_no = "#ab47bc"
+            formato_no = "diamond"
+        else:
+            cor_no = "#82b1ff"
+            formato_no = "dot"
+
+        full_nodes.append(Node(id=node_id, label=label_no, size=20, shape=formato_no, color=cor_no))
+
+    for source, target, edge_data in full_graph.edges(data=True):
+        rel_type = edge_data.get("relationship_type", "")
+        full_edges.append(Edge(source=source, target=target, label=rel_type, type="CURVE_SMOOTH", color="#444444", label_color="#666666"))
+
+    config_full_dict = {
+        "width": "100%",
+        "height": 800,
+        "directed": True,
+        "hierarchical": True,
+        "nodes": {
+            "font": {"color": "#e0e0e0", "size": 13, "face": "Arial"},
+            "borderWidthSelected": 2,
+            "widthConstraint": {"maximum": 160}
+        },
+        "edges": {
+            "font": {
+                "color": "#757575",
+                "size": 10,
+                "align": "top",
+                "strokeWidth": 0,
+                "background": "transparent"
+            },
+            "smooth": {"type": "cubicBezier", "forceDirection": "vertical", "roundness": 0.4},
+            "arrows": {"to": {"enabled": True, "scaleFactor": 0.4}}
+        },
+        "physics": {"enabled": False},
+        "layout": {
+            "hierarchical": {
+                "enabled": True,
+                "direction": "UD",
+                "sortMethod": "directed",
+                "nodeSpacing": 180,
+                "levelSeparation": 160,
+                "treeSpacing": 220
+            }
+        }
+    }
+
+    config_full = Config(**config_full_dict)
+
+    caixa_full = st.container(border=True)
+    with caixa_full:
+        agraph(nodes=full_nodes, edges=full_edges, config=config_full)
