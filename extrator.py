@@ -1,17 +1,16 @@
 import os
+import json
 import google.generativeai as genai
 from dotenv import load_dotenv
-import json
 
 load_dotenv()
-api_key = os.getenv("GEMINI_API_KEY")
-genai.configure(api_key=api_key)
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
-# 1. O PRÉ-PROMPT (System Instruction)
-# Aqui dizemos quem ela é e como deve se comportar.
-instrucao_sistema = """
+SYSTEM_PROMPT = """
 You are a Data Engineer specializing in Ontological Knowledge Graphs.
 Your ONLY function is to read meeting transcripts and extract entities and their relationships.
+
+LANGUAGE RULE: Entity names, IDs, and relationship labels must be in English. Proposal messages must be in Brazilian Portuguese (pt-BR). The input document may be in any language.
 
 STRICT GRAPH RULES (ONTOLOGY):
 1. **Happy Path:** People execute Tasks (Person -> PERFORMED -> Task -> AFFECTS/RESOLVES -> SystemComponent). A Person NEVER connects directly to a Component.
@@ -19,6 +18,11 @@ STRICT GRAPH RULES (ONTOLOGY):
 3. **Blockers & Events:** If meetings are canceled or tasks are blocked, map the causality. (Person -> CANCELED -> Event -> BLOCKS -> Task).
 4. **Actionable Nodes:** Always ensure there is an intermediate node (Task, Risk, or Event) explaining HOW or WHY two entities are connected.
 5. **Status Tracking:** EVERY entity must have a status. For new actionable items or ongoing situations, use "Pending" or "Active". If the transcript mentions that a task is completed or a risk is mitigated, use "Done" or "Resolved".
+
+PROPOSAL CLASSIFICATION RULES:
+- "risk": external threats, client dissatisfaction, contract cancellation threats, deadline risks, data issues.
+- "task": an action that needs to be done but has no owner or has not been started yet.
+- "bottleneck": a single point of failure, a person or system that blocks others, a process dependency that creates operational risk (e.g. only one person has access to something critical).
 
 You must return ONLY a valid JSON object strictly following this exact structure:
 {
@@ -47,7 +51,8 @@ You must return ONLY a valid JSON object strictly following this exact structure
     "status_updates": [
       {
         "entity_id": "string",
-        "new_status": "Active | Pending | Done | Resolved"
+        "new_status": "Active | Pending | Done | Resolved",
+        "completed_at": "YYYY-MM-DD or null if no date mentioned"
       }
     ]
   }
@@ -56,40 +61,27 @@ You must return ONLY a valid JSON object strictly following this exact structure
 Do not include markdown tags like ```json. Return just the raw JSON.
 """
 
-# 2. A CONFIGURAÇÃO DE SAÍDA (Forçando o JSON)
-# O Gemini tem uma trava nativa para garantir que não venha texto solto.
-configuracao_geracao = genai.GenerationConfig(
-    response_mime_type="application/json"
+model = genai.GenerativeModel(
+    model_name='gemini-2.5-flash',
+    system_instruction=SYSTEM_PROMPT,
+    generation_config=genai.GenerationConfig(response_mime_type="application/json")
 )
 
-# 3. CRIANDO O MODELO COM AS REGRAS
-# Passamos a instrução e a configuração na hora de instanciar a IA.
-modelo = genai.GenerativeModel(
-    model_name='gemini-2.5-flash', # Ou o modelo que funcionou para você
-    system_instruction=instrucao_sistema,
-    generation_config=configuracao_geracao
-)
 
 def processData(text, existing_context=None):
-
     prompt = text
 
     if existing_context and existing_context.get("entities"):
-        context_lines = [f"- [{e['type']}] {e['name']} (id: {e['id']}, status: {e['status']})" for e in existing_context["entities"]]
-        context_block = "\n".join(context_lines)
+        context_lines = [
+            f"- [{e['type']}] {e['name']} (id: {e['id']}, status: {e['status']})"
+            for e in existing_context["entities"]
+        ]
         prompt = (
             f"EXISTING KNOWLEDGE BASE (already extracted from previous documents):\n"
-            f"{context_block}\n\n"
+            f"{chr(10).join(context_lines)}\n\n"
             f"Use these known entities when they appear again — reuse their exact IDs instead of creating duplicates.\n\n"
             f"NEW DOCUMENT TO PROCESS:\n{text}"
         )
 
-    resposta = modelo.generate_content(prompt)
-
-    structuredData = json.loads(resposta.text)
-
-    return structuredData
-    
-
-if __name__ == "__main__":
-    print("test")
+    response = model.generate_content(prompt)
+    return json.loads(response.text)
