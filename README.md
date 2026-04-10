@@ -28,7 +28,13 @@ NEO4J_PASSWORD=sua_senha_aqui
 3. Inicie a aplicação:
 
 ```bash
-streamlit run main.py
+streamlit run src/main.py
+```
+
+OU
+
+```bash
+python -m streamlit run main.py
 ```
 
 ### Uso
@@ -44,24 +50,24 @@ streamlit run main.py
 
 ### Ontologia
 
-A modelagem partiu de uma pergunta central: *quais são os objetos operacionais reais que vivem dentro do conhecimento organizacional?*
+A modelagem partiu de uma pergunta central: _quais são os objetos operacionais reais que vivem dentro do conhecimento organizacional?_
 
 Cheguei em seis tipos de entidade:
 
-| Tipo | Descrição |
-|---|---|
-| `Person` | Quem age — toma decisões, executa tarefas, levanta riscos |
-| `Task` | Unidade de trabalho com estado rastreável |
-| `Risk` | Ameaça identificada com potencial de impacto operacional |
-| `Event` | Acontecimento pontual que altera o estado do sistema (reunião, incidente) |
-| `Client` | Entidade externa com poder de pressionar ou cancelar |
-| `SystemComponent` | Componente técnico ou de processo afetado por tarefas e riscos |
+| Tipo              | Descrição                                                                 |
+| ----------------- | ------------------------------------------------------------------------- |
+| `Person`          | Quem age — toma decisões, executa tarefas, levanta riscos                 |
+| `Task`            | Unidade de trabalho com estado rastreável                                 |
+| `Risk`            | Ameaça identificada com potencial de impacto operacional                  |
+| `Event`           | Acontecimento pontual que altera o estado do sistema (reunião, incidente) |
+| `Client`          | Entidade externa com poder de pressionar ou cancelar                      |
+| `SystemComponent` | Componente técnico ou de processo afetado por tarefas e riscos            |
 
 A decisão mais importante foi a de **nunca conectar duas entidades diretamente sem um nó intermediário**. Uma `Person` não se liga a um `SystemComponent` — ela executa uma `Task` que afeta o componente. Isso forçou o grafo a ter semântica em cada aresta, não apenas topologia.
 
 Os estados seguem uma progressão simples: `Pending → Active → Done | Resolved`. Todo nó nasce com estado e pode ser atualizado conforme novos documentos são processados.
 
-**Trade-off:** a exigência de nós intermediários aumenta a densidade do grafo, mas torna cada conexão interpretável por humanos. Um grafo com arestas diretas seria mais simples de gerar, mas perderia a narrativa de *por que* duas entidades estão conectadas.
+**Trade-off:** a exigência de nós intermediários aumenta a densidade do grafo, mas torna cada conexão interpretável por humanos. Um grafo com arestas diretas seria mais simples de gerar, mas perderia a narrativa de _por que_ duas entidades estão conectadas.
 
 ---
 
@@ -90,6 +96,7 @@ Isso resolve o problema mais concreto de aprendizado: na décima reunião, o mod
 Usei Neo4j como banco de grafos. A escolha foi direta: o dado é intrinsecamente um grafo, e forçá-lo em um modelo relacional ou documento implicaria joins ou lookups artificiais para reconstruir as relações.
 
 Cada nó tem:
+
 - `id` (snake_case, gerado pelo LLM, usado como chave de MERGE)
 - `name`
 - `status`
@@ -116,10 +123,10 @@ O que não foi implementado mas foi considerado: detecção de padrões cross-do
 
 ### Stack
 
-| Componente | Escolha | Motivo |
-|---|---|---|
-| LLM | Gemini 2.5 Flash | Suporte nativo a structured output via `response_mime_type`, boa capacidade de seguir schemas complexos |
-| Banco | Neo4j | Dado é um grafo — modelagem nativa elimina joins artificiais |
-| Grafo em memória | NetworkX | Manipulação de componentes conectados para posicionamento visual |
-| UI | Streamlit | Prototipagem rápida com componentes interativos sem frontend separado |
-| Visualização | streamlit-agraph | Renderização de grafos interativos com física configurável |
+| Componente       | Escolha          | Motivo                                                                                                  |
+| ---------------- | ---------------- | ------------------------------------------------------------------------------------------------------- |
+| LLM              | Gemini 2.5 Flash | Suporte nativo a structured output via `response_mime_type`, boa capacidade de seguir schemas complexos |
+| Banco            | Neo4j            | Dado é um grafo — modelagem nativa elimina joins artificiais                                            |
+| Grafo em memória | NetworkX         | Manipulação de componentes conectados para posicionamento visual                                        |
+| UI               | Streamlit        | Prototipagem rápida com componentes interativos sem frontend separado                                   |
+| Visualização     | streamlit-agraph | Renderização de grafos interativos com física configurável                                              |
