@@ -63,6 +63,8 @@ Cheguei em seis tipos de entidade:
 | `Client`          | Entidade externa com poder de pressionar ou cancelar                      |
 | `SystemComponent` | Componente técnico ou de processo afetado por tarefas e riscos            |
 
+Para chegar nesses tipos, analisei quais categorias de conhecimento organizacional têm requisitos estruturais distintos. Uma situação de ameaça não pode ser modelada como `Task` — ela não tem dono nem deadline, ela tem severidade e pode se agravar. Uma ação não pode ser modelada como `Risk` — ela tem responsável e estado de execução. Um acontecimento pontual como uma reunião cancelada não é nem ameaça nem ação — é um fato que causa efeitos em cascata. Essa distinção entre o que *ameaça*, o que *precisa ser feito* e o que *aconteceu* é o núcleo da ontologia.
+
 A decisão mais importante foi a de **nunca conectar duas entidades diretamente sem um nó intermediário**. Uma `Person` não se liga a um `SystemComponent` — ela executa uma `Task` que afeta o componente. Isso forçou o grafo a ter semântica em cada aresta, não apenas topologia.
 
 Os estados seguem uma progressão simples: `Pending → Active → Done | Resolved`. Todo nó nasce com estado e pode ser atualizado conforme novos documentos são processados.
