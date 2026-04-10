@@ -1,0 +1,31 @@
+Participantes: João Silva, Marina Costa, Pedro Almeida, Lucas Mendes
+Duração: 30 minutos
+Data: 28/03/2025
+
+Marina reporta que completou o schema de mapeamento mas encontrou inconsistências nos dados do Salesforce.
+
+Pedro informa que o cliente TechNova agendou uma call de escalação para a semana que vem. Situação crítica.
+
+João decide que vão usar REST API (não GraphQL) — time não tem experiência e o prazo é curto.
+
+João decide que Lucas vai fazer pair programming com Marina por 1 semana pra absorver o conhecimento de Salesforce. Isso mitiga o risco de single point of failure.
+
+Pedro propõe antecipar uma entrega parcial pro TechNova — só sync de contatos, sem deals. Ainda não aprovado.
+
+Tarefas novas:
+- Marina: corrigir inconsistências no mapeamento do Salesforce (deadline 31/03)
+- Pedro: preparar demo parcial de sync para a call com TechNova (deadline 03/04, prioridade crítica)
+- Lucas: fazer setup do ambiente local e rodar testes existentes (deadline 31/03)
+- Alguém precisa escrever testes de integração pro endpoint de sync (deadline 07/04, sem dono)
+
+Riscos:
+- TechNova agendou call de escalação — risco de churn agora é crítico
+- Dados do Salesforce têm inconsistências que podem atrasar o mapeamento
+
+Perguntas ainda abertas:
+- Rate limiting: próprio ou do CRM? (sem definição ainda)
+- Quem será o ponto de contato técnico na call com TechNova?
+
+Dependências:
+- Demo pro TechNova depende do staging estar pronto
+- Onboarding do Lucas depende de acesso ao sandbox do Salesforce
