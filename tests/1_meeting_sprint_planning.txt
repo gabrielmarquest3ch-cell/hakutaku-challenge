@@ -1,0 +1,24 @@
+Participantes: João Silva, Marina Costa, Pedro Almeida, Ana Ferreira
+Duração: 45 minutos
+Data: 24/03/2025
+
+João abre a reunião dizendo que precisam definir as prioridades do sprint para a integração com CRM.
+
+Marina sugere começar pelo módulo de sincronização de contatos antes de deals. João concorda e aprova — contatos são pré-requisito e 3 clientes já pediram.
+
+João decide alocar Marina exclusivamente pro backend da integração nas próximas 2 semanas, já que ela é a única com experiência na API do Salesforce.
+
+Tarefas definidas:
+- Marina vai criar o schema de mapeamento entre campos do CRM e entidades internas (deadline 28/03)
+- Alguém precisa configurar o ambiente de staging pra testes (deadline 31/03, sem dono definido)
+- Pedro vai documentar os endpoints disponíveis na API do cliente TechNova (deadline 02/04)
+
+Pedro levanta um risco: o cliente TechNova pode cancelar o contrato se a integração não for entregue até abril. Severidade alta.
+
+Ana levanta outro risco: Marina é single point of failure no conhecimento de Salesforce API.
+
+Marina pergunta: devemos usar REST API ou GraphQL pra integração? GraphQL é mais flexível mas o time não tem experiência.
+
+Marina também pergunta sobre rate limiting — precisamos do nosso próprio ou usamos o do CRM?
+
+Dependência identificada: a integração depende do time de infra liberar o ambiente de staging.
