@@ -34,7 +34,7 @@ streamlit run src/main.py
 OU
 
 ```bash
-python -m streamlit run main.py
+python -m streamlit run src/main.py
 ```
 
 ### Uso
